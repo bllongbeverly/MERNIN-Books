@@ -1,73 +1,37 @@
 const jwt = require('jsonwebtoken');
-const { GraphQLError } = require('graphql');
+const { AuthenticationError } = require('apollo-server-express');
+
+// Set token secret and expiration date
 const secret = 'mysecretsshhhhh';
 const expiration = '2h';
 
 module.exports = {
-  
-  authMiddleware: function (req, res, next) {
-  
-    let token = req.query.token || req.headers.authorization;
+  // Middleware function for authenticating GraphQL requests
+  authMiddleware: function ({ req, res, next }) {
+    let token = req.headers.authorization || '';
 
-    
-    if (req.headers.authorization) {const jwt = require('jsonwebtoken');
-    const { GraphQLError } = require('graphql');
-    const secret = 'mysecretsshhhhh';
-    const expiration = '2h';
-    
-    module.exports = {
-      AuthenticationError: new GraphQLError('Could not authenticate user.', {
-        extensions: {
-          code: 'UNAUTHENTICATED',
-        },
-      }),
-      authMiddleware: function ({ req }) {
-      
-        let token = req.body.token || req.query.token || req.headers.authorization;
-    
-        
-        if (req.headers.authorization) {
-          token = token.split(' ').pop().trim();
-        }
-        if (!token) {
-          return req;
-        }
-    
-        try {
-          const { data } = jwt.verify(token, secret, { maxAge: expiration });
-          req.user = data;
-        } catch {
-          console.log('Invalid token');
-        }
-    
-        return req;
-      },
-      signToken: function ({ username, email, _id }) {
-        const payload = { username, email, _id };
-    
-        return jwt.sign({ data: payload }, secret, { expiresIn: expiration });
-      },
-    };
-      token = token.split(' ').pop().trim();
+    if (token.startsWith('Bearer ')) {
+      token = token.slice(7, token.length).trim();
     }
 
     if (!token) {
-      return res.status(400).json({ message: 'You have no token!' });
+      throw new AuthenticationError('You have no token!');
     }
 
-      try {
-      const { data } = jwt.verify(token, secret, { maxAge: expiration });
+    try {
+      const { data } = jwt.verify(token, secret);
       req.user = data;
-    } catch {
+    } catch (error) {
       console.log('Invalid token');
-      return res.status(400).json({ message: 'invalid token!' });
+      throw new AuthenticationError('Invalid token!');
     }
 
     next();
   },
+
+  // Function for signing JWT tokens
   signToken: function ({ username, email, _id }) {
     const payload = { username, email, _id };
-
     return jwt.sign({ data: payload }, secret, { expiresIn: expiration });
   },
 };
